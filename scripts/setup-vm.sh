@@ -11,7 +11,7 @@ NVM_VERSION="v0.40.1"
 
 # El timeout evita fallar si unattended-upgrades tiene apt bloqueado en el primer arranque
 sudo apt-get -o DPkg::Lock::Timeout=600 update -y
-sudo apt-get -o DPkg::Lock::Timeout=600 install -y git curl
+sudo apt-get -o DPkg::Lock::Timeout=600 install -y git curl libatomic1  # libatomic1: requerido por Node >= 24
 
 # Node.js con nvm (seccion "Installing Node.js and npm using NVM" del laboratorio)
 if [ ! -d "$HOME/.nvm" ]; then
