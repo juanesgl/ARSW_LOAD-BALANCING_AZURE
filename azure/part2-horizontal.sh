@@ -8,8 +8,11 @@
 #   ./part2-horizontal.sh vm 4      # punto 3: cuarta VM
 #   ./part2-horizontal.sh ip        # IP publica del balanceador
 #   ./part2-horizontal.sh status    # estado de las VMs y del backend pool
+#   ./part2-horizontal.sh outbound  # regla de salida (SNAT) para nodos sin IP publica
 # Las VMs instalan y arrancan FibonacciApp solas con cloud-init (scripts/setup-vm.sh).
 # Si prefiere hacerlo a mano como dice el laboratorio, exporte MANUAL_SETUP=1.
+# Variables opcionales: ZONE=<1|2|3> fuerza la zona; NO_PUBLIC_IP=1 crea el nodo sin IP
+# publica (Azure for Students limita a 3 IPs publicas por region; requiere "outbound").
 set -eo pipefail
 
 RG="${RG:-SCALABILITY_LAB}"
@@ -73,16 +76,20 @@ create_vm() {
   local i="$1"
   local name="VM$i"
   local user="vm$i"
-  local zone=$(( (i - 1) % 3 + 1 ))
+  local zone="${ZONE:-$(( (i - 1) % 3 + 1 ))}"
 
   # IP publica Standard zone-redundant para el nodo
-  az network public-ip create -g "$RG" -n "$name-ip" -l "$LOCATION" \
-    --sku Standard --allocation-method Static --zone 1 2 3 -o none
+  local pip_args=()
+  if [ -z "$NO_PUBLIC_IP" ]; then
+    az network public-ip create -g "$RG" -n "$name-ip" -l "$LOCATION" \
+      --sku Standard --allocation-method Static --zone 1 2 3 -o none
+    pip_args=(--public-ip-address "$name-ip")
+  fi
 
   # NIC en la subnet, con el NSG compartido y dentro del backend pool del balanceador
   az network nic create -g "$RG" -n "$name-nic" -l "$LOCATION" \
     --vnet-name "$VNET" --subnet "$SUBNET" --network-security-group "$NSG" \
-    --public-ip-address "$name-ip" --lb-name "$LB" --lb-address-pools "$POOL" -o none
+    "${pip_args[@]}" --lb-name "$LB" --lb-address-pools "$POOL" -o none
 
   local custom_data=()
   if [ -z "$MANUAL_SETUP" ]; then
@@ -101,7 +108,20 @@ EOF
     --image "$IMAGE" --size "$SIZE" --nics "$name-nic" \
     --admin-username "$user" $(ssh_args) "${custom_data[@]}" -o table
 
-  echo "$name creada en la zona $zone. SSH: ssh $user@$(az network public-ip show -g "$RG" -n "$name-ip" --query ipAddress -o tsv)"
+  if [ -z "$NO_PUBLIC_IP" ]; then
+    echo "$name creada en la zona $zone. SSH: ssh $user@$(az network public-ip show -g "$RG" -n "$name-ip" --query ipAddress -o tsv)"
+  else
+    echo "$name creada en la zona $zone (sin IP publica, solo accesible por el balanceador)"
+  fi
+}
+
+# Salida a Internet por la IP del balanceador para los nodos sin IP publica (cloud-init
+# necesita descargar nvm, Node y el repositorio). La regla de balanceo debe desactivar su SNAT.
+create_outbound() {
+  az network lb rule update -g "$RG" --lb-name "$LB" -n "$RULE" --disable-outbound-snat true -o none
+  az network lb outbound-rule create -g "$RG" --lb-name "$LB" -n SCALABILITY_LAB_OUTBOUND_RULE \
+    --frontend-ip-configs "$FRONTEND" --address-pool "$POOL" --protocol All -o none
+  echo "Regla de salida creada."
 }
 
 lb_ip() {
@@ -113,13 +133,14 @@ case "$1" in
   vm)     create_vm "${2:?Indique el numero de la VM, p. ej. 4}" ;;
   vms)    for i in 1 2 3; do create_vm "$i"; done ;;
   ip)     lb_ip ;;
+  outbound) create_outbound ;;
   status)
     az vm list -g "$RG" -d --query "[].{name:name, zone:zones[0], size:hardwareProfile.vmSize, state:powerState, ip:publicIps}" -o table
     az network lb address-pool show -g "$RG" --lb-name "$LB" -n "$POOL" \
       --query "backendIPConfigurations[].id" -o tsv | awk -F/ '{print "En el pool: " $9}'
     ;;
   *)
-    echo "Uso: $0 {infra|vm <n>|vms|ip|status}"
+    echo "Uso: $0 {infra|vm <n>|vms|ip|status|outbound}"
     exit 1
     ;;
 esac
