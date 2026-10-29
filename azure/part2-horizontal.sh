@@ -42,6 +42,8 @@ create_infra() {
   az network lb create -g "$RG" -n "$LB" -l "$LOCATION" --sku Standard \
     --public-ip-address "$LB_IP" --frontend-ip-name "$FRONTEND" \
     --backend-pool-name "$POOL" -o none
+  # Consistencia eventual: el LB puede tardar en ser visible para los comandos siguientes
+  az network lb wait -g "$RG" -n "$LB" --created --interval 5 --timeout 300
 
   # 3. Health probe TCP:3000, intervalo 5 s
   az network lb probe create -g "$RG" --lb-name "$LB" -n "$PROBE" \
