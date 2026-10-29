@@ -1,3 +1,4 @@
 FibonacciApp/node_modules
-reports/
+# Los JSON de newman incluyen el cuerpo de cada respuesta (~200 KB); se versionan solo los resúmenes .md
+reports/**/*.json
 tools/node_modules
