@@ -1,0 +1,14 @@
+{
+  "name": "fibonacciapp-tools",
+  "version": "1.0.0",
+  "description": "Herramientas para medir tiempos y lanzar pruebas de carga contra FibonacciApp (se ejecutan fuera de la VM)",
+  "private": true,
+  "scripts": {
+    "times": "node measure-times.js",
+    "load": "node load-test.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "newman": "^6.2.1"
+  }
+}

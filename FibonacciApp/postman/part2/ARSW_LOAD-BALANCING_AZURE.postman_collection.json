@@ -13,7 +13,13 @@
 					"script": {
 						"id": "13ffad74-6e59-4466-b953-7bcefd94f838",
 						"exec": [
-							""
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"pm.test(\"Body contains the answer\", function () {",
+							"    pm.expect(pm.response.text()).to.include(\"The answer is\");",
+							"});"
 						],
 						"type": "text/javascript"
 					}

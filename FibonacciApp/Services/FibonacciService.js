@@ -9,7 +9,7 @@ class FibonacciService {
         let answer = bigInt.zero;
 
         if (nth < 0)
-            throw 'must be greater than 0'
+            throw new Error('must be greater than 0')
         else if (nth === 0)
             answer = nth_2
         else if (nth === 1)
