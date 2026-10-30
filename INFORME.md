@@ -499,7 +499,7 @@ Al terminar se eliminó el grupo de recursos `SCALABILITY_LAB` completo (`azure/
 
 ## Anexo – Video de la ejecución en Azure
 
-El laboratorio completo se volvió a ejecutar el **29/10/2026 entre las 09:35 y las 10:47** (hora de Colombia) y se grabó en tiempo real: portal de Azure y Cloud Shell, sin voz y con títulos por sección. El video es [`video/laboratorio-escalamiento-azure.mp4`](video/laboratorio-escalamiento-azure.mp4) (73 min). En la esquina inferior derecha se muestra la hora real de la grabación.
+El laboratorio completo se volvió a ejecutar el **29/10/2026 entre las 09:35 y las 10:47** (hora de Colombia) y se grabó en tiempo real: portal de Azure y Cloud Shell, con títulos por sección y narración del equipo. El video es [`video/laboratorio-escalamiento-azure.mp4`](video/laboratorio-escalamiento-azure.mp4) (73 min). En la esquina inferior derecha se muestra la hora real de la grabación.
 
 Entre las 10:12 y las 10:18 otra ventana tapó el navegador, así que ese tramo se retiró. En su lugar hay una tarjeta explicativa y el mismo paso regrabado a las 11:11: `part2-horizontal.sh infra` y `outbound`. En esa toma la IP del balanceador es otra (68.155.216.72); en el resto de la parte 2 es 68.155.198.84.
 
@@ -531,7 +531,7 @@ Entre las 10:12 y las 10:18 otra ventana tapó el navegador, así que ese tramo 
 | 67:10 | Verificación final del sistema completo |
 | 68:18 | Limpieza: eliminación del grupo de recursos |
 
-**Resultados de la ejecución grabada.** Son números distintos a los de las secciones anteriores, que corresponden a otra ejecución. La conclusión es la misma.
+**Resultados de la ejecución grabada.** Son números distintos a los de las secciones anteriores, que corresponden a otra ejecución, pero la conclusión es la misma. En esta ejecución las pruebas se lanzaron desde Cloud Shell con la CLI de newman (`newman run ... -n 10 &`, como en el enunciado) y los tiempos se midieron con `tools/measure-times.js`.
 
 | Escenario | Tamaño | Éxito | Promedio por ejecución | Tiempo secuencial promedio |
 |---|---|---|---|---|
@@ -542,6 +542,7 @@ Entre las 10:12 y las 10:18 otra ventana tapó el navegador, así que ese tramo 
 | Parte 2, 4× | LB + 3 × `B2ts_v2` | 40/40 (100 %) | 5,9 s – 11,1 s | – |
 
 - CPU de la VM de la parte 1 durante la carga: unos 40 % con 2 vCPU y 25 % con 4 vCPU. La app usa un solo hilo.
-- Health probe al 100 % en los tres backends (10.1.0.4, 10.1.0.5 y 10.1.0.6).
+- Health probe al 100 % en los tres backends (10.1.0.4, 10.1.0.5 y 10.1.0.6). CPU máxima por nodo en la parte 2: VM1 47 %, VM2 35 % y VM3 51 %; incluye la instalación con cloud-init.
+- Con 4 clientes y 3 nodos esta vez no hubo `ECONNRESET` (40/40). El error depende de que coincidan el vencimiento del *keep-alive* y la siguiente petición en un nodo compartido, así que no siempre aparece.
 - Reparto de 15 peticiones a través del LB: VM1 6, VM2 2 y VM3 7.
 - En la parte 2 se usó `Standard_B2ts_v2` (2 vCPU, 1 GiB, igual que `B2ats_v2`) porque Azure no tenía capacidad de `B2ats_v2` en las zonas 1 y 3 en ese momento y sugirió ese tamaño en el mismo error.
